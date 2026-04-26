@@ -30,7 +30,9 @@
   "scripts": {
     "check": "tsc --noEmit",
     "test": "tsx --test test/*.test.ts",
-    "ci": "npm run check && npm test && npm pack --dry-run"
+    "ci": "npm run check && npm test && npm pack --dry-run",
+    "release:dry": "npm run ci",
+    "release": "npm publish --access public"
   },
   "pi": {
     "extensions": [
