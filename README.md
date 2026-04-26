@@ -14,6 +14,29 @@ Hold `SPACE` to record, release to transcribe, and the transcript is inserted in
 - No cloud-provider lock-in
 - No fallback shortcut or global daemon
 
+## Usage
+
+Start Pi. If the terminal supports Kitty keyboard protocol, the footer should show:
+
+```text
+🎤 ready
+```
+
+Then:
+
+1. Hold `SPACE` until recording starts.
+2. Speak.
+3. Release `SPACE`.
+4. Wait for `🎤 transcribing` to finish.
+5. Review/edit the transcript inserted in the editor.
+6. Send manually when ready.
+
+Toggle voice input:
+
+```text
+/voice
+```
+
 ## Current requirements
 
 - Pi coding agent
@@ -61,29 +84,6 @@ For global auto-discovery during local development, place it at:
 
 ```text
 ~/.pi/agent/extensions/pi-whisper-voice/
-```
-
-## Usage
-
-Start Pi. If the terminal supports Kitty keyboard protocol, the footer should show:
-
-```text
-🎤 ready
-```
-
-Then:
-
-1. Hold `SPACE` until recording starts.
-2. Speak.
-3. Release `SPACE`.
-4. Wait for `🎤 transcribing` to finish.
-5. Review/edit the transcript inserted in the editor.
-6. Send manually when ready.
-
-Toggle voice input:
-
-```text
-/voice
 ```
 
 ## License
