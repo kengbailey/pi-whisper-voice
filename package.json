@@ -1,0 +1,62 @@
+{
+  "name": "pi-whisper-voice",
+  "version": "0.1.0",
+  "description": "Minimal hold-SPACE voice input for Pi using an OpenAI-compatible Whisper/STT endpoint.",
+  "type": "module",
+  "license": "MIT",
+  "author": "kengbailey",
+  "homepage": "https://github.com/kengbailey/pi-whisper-voice#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kengbailey/pi-whisper-voice.git"
+  },
+  "bugs": {
+    "url": "https://github.com/kengbailey/pi-whisper-voice/issues"
+  },
+  "keywords": [
+    "pi-package",
+    "pi-extension",
+    "pi",
+    "voice",
+    "speech-to-text",
+    "stt",
+    "whisper",
+    "openai-compatible",
+    "hold-to-talk",
+    "voice-input",
+    "transcription",
+    "coding-agent"
+  ],
+  "scripts": {
+    "check": "tsc --noEmit",
+    "test": "tsx --test test/*.test.ts",
+    "ci": "npm run check && npm test && npm pack --dry-run"
+  },
+  "pi": {
+    "extensions": [
+      "./index.ts"
+    ]
+  },
+  "files": [
+    "index.ts",
+    "recorder.ts",
+    "README.md",
+    "ROADMAP.md",
+    "LICENSE",
+    "package.json"
+  ],
+  "peerDependencies": {
+    "@mariozechner/pi-coding-agent": "*",
+    "@mariozechner/pi-tui": "*"
+  },
+  "devDependencies": {
+    "@mariozechner/pi-coding-agent": "^0.70.2",
+    "@mariozechner/pi-tui": "^0.70.2",
+    "@types/node": "^22.14.0",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
