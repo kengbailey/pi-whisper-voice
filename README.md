@@ -86,59 +86,6 @@ Toggle voice input:
 /voice
 ```
 
-## Current defaults
-
-These are currently hard-coded and will become settings in a future release:
-
-```ts
-sttBaseUrl: "http://192.168.8.116:8000/v1"
-sttModel: "Systran/faster-distil-whisper-large-v3"
-sttToken: "dummy"
-language: "en"
-sampleRate: 16000
-holdThresholdMs: 1200
-typingCooldownMs: 400
-sttTimeoutMs: 120000
-```
-
-## Limitations
-
-This is intentionally small right now.
-
-Known limitations:
-
-- macOS-oriented `ffmpeg` capture path today
-- no settings panel yet
-- no `/voice doctor` diagnostics yet
-- no audio tool fallback yet (`sox`, `arecord` planned)
-- no microphone device picker yet
-- no pre-record/tail-record buffer yet
-- no npm release yet
-
-See [`ROADMAP.md`](./ROADMAP.md) for the upgrade backlog.
-
-## Development
-
-Install dependencies:
-
-```bash
-npm install
-```
-
-Run checks:
-
-```bash
-npm run check
-npm test
-npm run ci
-```
-
-The test suite avoids real microphone/STT dependencies. Hardware and local STT server behavior should be validated manually.
-
-## Security note
-
-Microphone audio is sent to the configured STT endpoint. Prefer localhost/private trusted endpoints, and review your configuration before recording sensitive content.
-
 ## License
 
 MIT
