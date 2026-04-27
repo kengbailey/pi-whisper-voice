@@ -42,6 +42,8 @@
   "files": [
     "index.ts",
     "recorder.ts",
+    "config.ts",
+    "settings-panel.ts",
     "README.md",
     "ROADMAP.md",
     "LICENSE",

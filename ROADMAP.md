@@ -153,9 +153,9 @@ Target users:
 
 ## Phase 1 — Publishable Minimal Robustness
 
-### 1. Persistent Settings
+### 1. Persistent Settings — Initial pass complete
 
-Add settings stored in Pi settings files.
+Initial support stores STT server URL, model, and token under `piWhisperVoice` in global Pi settings JSON. Environment variables override saved values; project-local voice settings are ignored for safety. Remaining settings below are candidates for future expansion.
 
 Suggested settings:
 
@@ -181,6 +181,8 @@ interface VoiceInputSettings {
 Commands:
 
 ```text
+/voice-settings
+/voice settings
 /voice status
 /voice endpoint <url>
 /voice model <model>
@@ -256,9 +258,9 @@ Priority: **Very high**
 
 ---
 
-### 4. Configurable Endpoint / Model / Token / Language
+### 4. Configurable Endpoint / Model / Token / Language — Partially complete
 
-Replace hard-coded local values with settings/env fallback.
+STT server URL, model, and token now use env/global-settings fallback. Language remains fixed to English for now.
 
 Environment variable ideas:
 
@@ -272,11 +274,12 @@ PI_VOICE_LANGUAGE
 Resolution order:
 
 1. environment variables
-2. project settings
-3. global settings
-4. defaults
+2. global settings
+3. defaults
 
-Priority: **Required before publishing**
+Project-local voice settings are intentionally ignored for microphone-audio safety.
+
+Priority: **Partially complete**
 
 ---
 
