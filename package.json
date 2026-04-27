@@ -1,6 +1,6 @@
 {
   "name": "pi-whisper-voice",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Minimal hold-SPACE voice input for Pi using an OpenAI-compatible Whisper/STT endpoint.",
   "type": "module",
   "license": "MIT",
