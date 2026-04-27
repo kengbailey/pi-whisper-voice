@@ -124,3 +124,21 @@ test("formatTokenValue masks configured token values", () => {
   assert.equal(formatTokenValue("secret-token", "global"), "configured (from global)");
   assert.equal(formatTokenValue("secret-token", "env"), "configured (from env)");
 });
+
+test("saveVoiceSetting with undefined clears the field and reverts to default", async () => {
+  const { cwd, home } = await tempDirs();
+  await mkdir(join(home, ".pi", "agent"), { recursive: true });
+
+  await saveVoiceSetting(cwd, "sttToken", "secret-token", "global", home);
+  let state = await loadVoiceConfig(cwd, {}, home);
+  assert.equal(state.config.sttToken, "secret-token");
+  assert.equal(state.sources.sttToken, "global");
+
+  await saveVoiceSetting(cwd, "sttToken", undefined, "global", home);
+  const saved = JSON.parse(await readFile(join(home, ".pi", "agent", "settings.json"), "utf8"));
+  assert.equal(Object.hasOwn(saved[VOICE_SETTINGS_KEY], "sttToken"), false);
+
+  state = await loadVoiceConfig(cwd, {}, home);
+  assert.equal(state.config.sttToken, DEFAULT_RUNTIME_CONFIG.sttToken);
+  assert.equal(state.sources.sttToken, "default");
+});

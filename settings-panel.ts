@@ -49,7 +49,7 @@ class SettingInput implements Component, Focusable {
   }
 
   handleInput(data: string): void {
-    if (this.saving) return;
+    // Always delegate so Esc can bail out of a slow save.
     this.input.handleInput(data);
   }
 
@@ -78,6 +78,7 @@ class SettingInput implements Component, Focusable {
   }
 
   private async submit(value: string): Promise<void> {
+    if (this.saving) return;
     this.error = undefined;
     this.saving = true;
     this.requestRender();
@@ -168,6 +169,10 @@ export async function showVoiceSettingsPanel(
       await saveVoiceSetting(ctx.cwd, field, value, "global");
       state = await loadVoiceConfig(ctx.cwd);
       onConfigChanged(state);
+
+      for (const item of items) {
+        item.description = inputDescription(item.id as VoiceSettingField, state);
+      }
 
       if (effectiveSource === "env" || state.sources[field] === "env") {
         ctx.ui.notify("Saved to global settings, but an environment variable still overrides this value", "warning");
