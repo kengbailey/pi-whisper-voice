@@ -1,4 +1,5 @@
 import {
+  DynamicBorder,
   getSettingsListTheme,
   type ExtensionContext,
 } from "@mariozechner/pi-coding-agent";
@@ -138,6 +139,9 @@ export async function showVoiceSettingsPanel(
 
   await ctx.ui.custom<void>((tui, theme, _keybindings, done) => {
     let settingsList: SettingsList;
+    const borderColor = (s: string) => theme.fg("border", s);
+    const topBorder = new DynamicBorder(borderColor);
+    const bottomBorder = new DynamicBorder(borderColor);
 
     const saveField = async (field: VoiceSettingField, rawValue: string): Promise<string> => {
       const trimmed = rawValue.trim();
@@ -205,15 +209,19 @@ export async function showVoiceSettingsPanel(
     return {
       render(width: number): string[] {
         return [
+          ...topBorder.render(width),
           theme.fg("accent", theme.bold("Voice Settings")),
           "",
           ...settingsList.render(width),
           "",
           theme.fg("dim", "  Values are saved to ~/.pi/agent/settings.json"),
           theme.fg("dim", "  Env vars override saved settings; project settings are ignored for safety."),
+          ...bottomBorder.render(width),
         ];
       },
       invalidate(): void {
+        topBorder.invalidate();
+        bottomBorder.invalidate();
         settingsList.invalidate();
       },
       handleInput(data: string): void {
