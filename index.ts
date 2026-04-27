@@ -7,6 +7,9 @@
  *
  * Commands:
  *   /voice — Toggle hold-to-talk voice input on/off
+ *   /voice status — Show current voice/STT configuration
+ *   /voice settings — Configure STT server URL, model, and token
+ *   /voice-settings — Open settings directly
  */
 import {
   CustomEditor,
@@ -20,32 +23,28 @@ import {
   isKeyRepeat,
   isKittyProtocolActive,
   matchesKey,
+  type AutocompleteItem,
 } from "@mariozechner/pi-tui";
 import {
-  DEFAULT_CONFIG,
   cleanupWav,
   detectAudioTool,
   getWavSize,
   startRecording,
   transcribeFile,
   type ActiveRecording,
-  type RecorderConfig,
 } from "./recorder.js";
+import {
+  DEFAULT_RUNTIME_CONFIG,
+  formatSettingSource,
+  formatTokenValue,
+  loadVoiceConfig,
+  type VoiceRuntimeConfig,
+} from "./config.js";
+import { showVoiceSettingsPanel } from "./settings-panel.js";
 
 // ─── Configuration ───────────────────────────────────────────────────────────
 
-const CONFIG: RecorderConfig & {
-  holdThresholdMs: number;
-  typingCooldownMs: number;
-  sttTimeoutMs: number;
-  minUsefulWavBytes: number;
-} = {
-  ...DEFAULT_CONFIG,
-  holdThresholdMs: 1200,
-  typingCooldownMs: 400,
-  sttTimeoutMs: 120_000,
-  minUsefulWavBytes: 100,
-};
+let runtimeConfig: VoiceRuntimeConfig = DEFAULT_RUNTIME_CONFIG;
 
 type VoicePhase = "idle" | "starting" | "recording" | "transcribing";
 
@@ -206,7 +205,7 @@ class VoiceEditor extends CustomEditor {
 
     // Preserve normal typing: a SPACE immediately after regular text is normal
     // input, not a voice gesture.
-    if (now - lastTypingTime < CONFIG.typingCooldownMs) {
+    if (now - lastTypingTime < runtimeConfig.typingCooldownMs) {
       super.handleInput(data);
       return;
     }
@@ -217,7 +216,7 @@ class VoiceEditor extends CustomEditor {
       if (!this.disposed && this.spaceDownAt > 0) {
         void this.beginRecording();
       }
-    }, CONFIG.holdThresholdMs);
+    }, runtimeConfig.holdThresholdMs);
   }
 
   private onSpaceRelease(): void {
@@ -232,7 +231,7 @@ class VoiceEditor extends CustomEditor {
     this.clearHoldTimer();
 
     // Released before threshold: ordinary single SPACE tap.
-    if (!this.startInFlight && !this.activeRecording && heldMs < CONFIG.holdThresholdMs) {
+    if (!this.startInFlight && !this.activeRecording && heldMs < runtimeConfig.holdThresholdMs) {
       super.handleInput(" ");
       return;
     }
@@ -256,7 +255,7 @@ class VoiceEditor extends CustomEditor {
     setPhase(this.ctx, "starting");
 
     try {
-      const recording = await startRecording(CONFIG);
+      const recording = await startRecording(runtimeConfig);
       this.startInFlight = false;
 
       if (this.disposed) {
@@ -312,16 +311,16 @@ class VoiceEditor extends CustomEditor {
       await recording.stop();
 
       const size = await getWavSize(recording.path);
-      if (size < CONFIG.minUsefulWavBytes) {
+      if (size < runtimeConfig.minUsefulWavBytes) {
         this.ctx.ui.notify("Voice: recording was empty", "warning");
         return;
       }
 
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), CONFIG.sttTimeoutMs);
+      const timeout = setTimeout(() => controller.abort(), runtimeConfig.sttTimeoutMs);
       let text: string;
       try {
-        text = await transcribeFile(CONFIG, recording.path, controller.signal);
+        text = await transcribeFile(runtimeConfig, recording.path, controller.signal);
       } finally {
         clearTimeout(timeout);
       }
@@ -409,18 +408,102 @@ function notifyVoiceReady(ctx: ExtensionContext): void {
   const kitty = isKittyProtocolActive();
   ctx.ui.notify(
     kitty
-      ? "Voice ready — hold SPACE to record"
-      : "Voice loaded, but hold-to-talk needs Kitty keyboard protocol/key releases",
+      ? [
+        "Voice ready — hold SPACE to record",
+        "Settings: /voice-settings",
+      ].join("\n")
+      : [
+        "Voice loaded, but hold-to-talk needs Kitty keyboard protocol/key releases",
+        "Settings: /voice-settings",
+      ].join("\n"),
     kitty ? "info" : "warning",
   );
 }
 
+async function reloadRuntimeConfig(ctx: ExtensionContext): Promise<void> {
+  try {
+    runtimeConfig = (await loadVoiceConfig(ctx.cwd)).config;
+  } catch (err) {
+    runtimeConfig = DEFAULT_RUNTIME_CONFIG;
+    notifyError(ctx, "Voice settings", err);
+  }
+}
+
+async function openVoiceSettings(ctx: ExtensionContext): Promise<void> {
+  if (voicePhase !== "idle") {
+    ctx.ui.notify("Voice is busy — wait for recording/transcription to finish", "warning");
+    return;
+  }
+
+  try {
+    await showVoiceSettingsPanel(ctx, (state) => {
+      runtimeConfig = state.config;
+    });
+  } catch (err) {
+    notifyError(ctx, "Voice settings", err);
+  }
+}
+
+async function showVoiceStatus(ctx: ExtensionContext): Promise<void> {
+  let state;
+  try {
+    state = await loadVoiceConfig(ctx.cwd);
+    runtimeConfig = state.config;
+  } catch (err) {
+    notifyError(ctx, "Voice status", err);
+    return;
+  }
+
+  const lines = [
+    "Voice status:",
+    "",
+    `  enabled:       ${voiceEnabled ? "yes" : "no"}`,
+    `  state:         ${voicePhase === "idle" ? "ready" : voicePhase}`,
+    `  server:        ${state.config.sttBaseUrl} (${formatSettingSource(state.sources.sttBaseUrl)})`,
+    `  model:         ${state.config.sttModel} (${formatSettingSource(state.sources.sttModel)})`,
+    `  token:         ${formatTokenValue(state.config.sttToken, state.sources.sttToken)}`,
+    `  settings:      /voice-settings`,
+  ];
+
+  ctx.ui.notify(lines.join("\n"), "info");
+}
+
+const VOICE_ARGUMENTS: AutocompleteItem[] = [
+  { value: "settings", label: "settings", description: "Configure STT server URL, model, and token" },
+  { value: "status", label: "status", description: "Show current voice/STT configuration" },
+  { value: "config", label: "config", description: "Alias for settings" },
+];
+
+function getVoiceArgumentCompletions(prefix: string): AutocompleteItem[] | null {
+  const query = prefix.trimStart().toLowerCase();
+  const matches = VOICE_ARGUMENTS.filter((item) => item.value.startsWith(query));
+  return matches.length > 0 ? matches : null;
+}
+
 export default function (pi: ExtensionAPI): void {
   pi.registerCommand("voice", {
-    description: "Toggle hold-SPACE voice input on/off",
-    handler: async (_args, ctx) => {
+    description: "Toggle hold-SPACE voice input on/off; use /voice settings to configure STT",
+    getArgumentCompletions: getVoiceArgumentCompletions,
+    handler: async (args, ctx) => {
       if (!ctx.hasUI) {
         ctx.ui.notify("Voice requires interactive mode", "error");
+        return;
+      }
+
+      const command = args.trim().toLowerCase();
+
+      if (command === "settings" || command === "config") {
+        await openVoiceSettings(ctx);
+        return;
+      }
+
+      if (command === "status" || command === "info") {
+        await showVoiceStatus(ctx);
+        return;
+      }
+
+      if (command.length > 0) {
+        ctx.ui.notify("Usage: /voice, /voice status, or /voice settings", "warning");
         return;
       }
 
@@ -454,10 +537,22 @@ export default function (pi: ExtensionAPI): void {
     },
   });
 
+  pi.registerCommand("voice-settings", {
+    description: "Configure pi-whisper-voice STT server URL, model, and token",
+    handler: async (_args, ctx) => {
+      if (!ctx.hasUI) {
+        ctx.ui.notify("Voice settings require interactive mode", "error");
+        return;
+      }
+      await openVoiceSettings(ctx);
+    },
+  });
+
   pi.on("session_start", async (_event, ctx) => {
     voicePhase = "idle";
     lastTypingTime = 0;
     currentEditor = undefined;
+    await reloadRuntimeConfig(ctx);
 
     const available = await detectAudioTool();
     if (!available) {

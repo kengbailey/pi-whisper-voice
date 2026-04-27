@@ -9,6 +9,7 @@ Hold `SPACE` to record, release to transcribe, and the transcript is inserted in
 - Hold `SPACE` push-to-talk inside Pi
 - Local microphone capture via `ffmpeg`
 - OpenAI-compatible STT endpoint: `POST /v1/audio/transcriptions`
+- In-TUI settings for server URL, model, and token
 - Transcript inserted into the editor for review/editing
 - Persistent footer state: `🎤 ready`, `🎤 recording`, `🎤 transcribing`
 - No cloud-provider lock-in
@@ -37,6 +38,34 @@ Toggle voice input:
 /voice
 ```
 
+Configure the STT server URL, model name, and token:
+
+```text
+/voice-settings
+```
+
+Alias:
+
+```text
+/voice settings
+```
+
+Show the active configuration:
+
+```text
+/voice status
+```
+
+Settings are saved under `piWhisperVoice` in global Pi settings JSON (`~/.pi/agent/settings.json`). Environment variables can override saved values:
+
+```text
+PI_VOICE_STT_BASE_URL
+PI_VOICE_STT_MODEL
+PI_VOICE_STT_TOKEN
+```
+
+Project-local voice settings are ignored for safety so a repository cannot redirect microphone audio or supply a token.
+
 ## Current requirements
 
 - Pi coding agent
@@ -58,18 +87,24 @@ Response:
 { "text": "transcribed text" }
 ```
 
-## Install from GitHub
+## Install
 
-After this repository is pushed, install with:
+Install from npm:
 
 ```bash
-pi install git:github.com/kengbailey/pi-whisper-voice
+pi install npm:pi-whisper-voice
 ```
 
 Or test without installing:
 
 ```bash
-pi -e git:github.com/kengbailey/pi-whisper-voice
+pi -e npm:pi-whisper-voice
+```
+
+Install from GitHub:
+
+```bash
+pi install git:github.com/kengbailey/pi-whisper-voice
 ```
 
 ## Local development install
