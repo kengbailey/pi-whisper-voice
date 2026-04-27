@@ -6,6 +6,8 @@ import {
 import {
   Input,
   SettingsList,
+  truncateToWidth,
+  visibleWidth,
   type Component,
   type Focusable,
   type SettingItem,
@@ -139,9 +141,16 @@ export async function showVoiceSettingsPanel(
 
   await ctx.ui.custom<void>((tui, theme, _keybindings, done) => {
     let settingsList: SettingsList;
-    const borderColor = (s: string) => theme.fg("border", s);
+    const borderColor = (s: string) => theme.fg("success", s);
     const topBorder = new DynamicBorder(borderColor);
     const bottomBorder = new DynamicBorder(borderColor);
+
+    const wrapBorderLine = (line: string, width: number): string => {
+      const innerWidth = Math.max(1, width - 4);
+      const clipped = truncateToWidth(line, innerWidth, "");
+      const padding = " ".repeat(Math.max(0, innerWidth - visibleWidth(clipped)));
+      return `${borderColor("│")} ${clipped}${padding} ${borderColor("│")}`;
+    };
 
     const saveField = async (field: VoiceSettingField, rawValue: string): Promise<string> => {
       const trimmed = rawValue.trim();
@@ -208,14 +217,19 @@ export async function showVoiceSettingsPanel(
 
     return {
       render(width: number): string[] {
-        return [
-          ...topBorder.render(width),
+        const innerWidth = Math.max(1, width - 4);
+        const content = [
           theme.fg("accent", theme.bold("Voice Settings")),
           "",
-          ...settingsList.render(width),
+          ...settingsList.render(innerWidth),
           "",
           theme.fg("dim", "  Values are saved to ~/.pi/agent/settings.json"),
           theme.fg("dim", "  Env vars override saved settings; project settings are ignored for safety."),
+        ];
+
+        return [
+          ...topBorder.render(width),
+          ...content.map((line) => wrapBorderLine(line, width)),
           ...bottomBorder.render(width),
         ];
       },
